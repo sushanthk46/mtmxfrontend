@@ -1,0 +1,139 @@
+/* Calibri is a system font, no need for web import */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+  :root {
+    --background: 220 13% 97%;
+    --foreground: 220 26% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 26% 14%;
+
+    --primary: 220 39% 11%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 220 39% 11%;
+
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 13% 35%;
+
+    --accent: 213 93% 68%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 234 12% 91%;
+    --input: 234 12% 91%;
+    --ring: 234 89% 28%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 39% 11%;
+    --sidebar-foreground: 220 13% 85%;
+    --sidebar-primary: 213 93% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 26% 14%;
+    --sidebar-accent-foreground: 220 13% 85%;
+    --sidebar-border: 220 26% 18%;
+    --sidebar-ring: 213 93% 68%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 142 76% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
+    --info: 217 91% 60%;
+    --info-foreground: 217 91% 10%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 213 93% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 213 93% 68%;
+
+    --sidebar-background: 220 39% 11%;
+    --sidebar-foreground: 220 13% 85%;
+    --sidebar-primary: 213 93% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 26% 14%;
+    --sidebar-accent-foreground: 220 13% 85%;
+    --sidebar-border: 220 26% 18%;
+    --sidebar-ring: 213 93% 68%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 142 76% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
+    --info: 217 91% 60%;
+    --info-foreground: 217 91% 10%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family:
+      "Calibri", "Segoe UI", "Trebuchet MS", "Lucida Sans Unicode",
+      "Lucida Grande", "Lucida Sans", Arial, sans-serif;
+    font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .gradient-bg {
+    @apply bg-gradient-to-br from-primary/5 via-background to-accent/5;
+  }
+
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+
+  .enterprise-shadow {
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      0 20px 25px -5px rgba(0, 0, 0, 0.05);
+  }
+}
