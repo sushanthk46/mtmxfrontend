@@ -16,18 +16,9 @@ import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/AdminLayout";
 import AddUser from "./pages/AddUser";
 import AdminUserManagement from "./pages/AdminUserManagement";
+import RequireRole from "@/components/RequireRole"; // ✅ use this one
 
 const queryClient = new QueryClient();
-
-function RequireRole({ role, children }: { role: string; children: JSX.Element }) {
-  const userRole = localStorage.getItem("role");
-  const token = localStorage.getItem("token");
-
-  if (!token) return <Navigate to="/login" replace />;
-  if (userRole !== role) return <Navigate to="/unauthorized" replace />;
-
-  return children;
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -58,7 +49,7 @@ const App = () => (
             <Route
               path="/admin"
               element={
-                <RequireRole role="ADMIN">
+                <RequireRole allowedRoles={["ADMIN"]}>
                   <AdminLayout />
                 </RequireRole>
               }

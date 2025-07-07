@@ -1,20 +1,18 @@
-import AdminLayout from "@/pages/AdminLayout";
 import { configManager } from "./config";
 
 export interface User {
   username: string;
   token: string;
+  role: string; // ✅ required for role-based auth
   loginTime: number;
 }
 
-export interface Admin {
-  username: string;
-  token: string;
-  loginTime: number;
+export interface Admin extends User {
+  // Inherits role = "ADMIN" from User
 }
 
 class AuthManager {
-  private user: User | Admin = null;
+  private user: User | Admin | null = null;
   private sessionCheckInterval: NodeJS.Timeout | null = null;
   private activityListeners: (() => void)[] = [];
   private lastActivityTime: number = Date.now();
@@ -31,6 +29,7 @@ class AuthManager {
       const username = localStorage.getItem("auth_username");
       const loginTime = localStorage.getItem("auth_login_time");
       const lastActivity = localStorage.getItem("auth_last_activity");
+      const role = localStorage.getItem("auth_role") || "USER"; // ✅ load role
 
       if (token && username && loginTime) {
         const loginTimeMs = parseInt(loginTime, 10);
@@ -43,6 +42,7 @@ class AuthManager {
 
         console.log("Loading session:", {
           username,
+          role,
           loginTime: new Date(loginTimeMs).toISOString(),
           lastActivity: new Date(lastActivityMs).toISOString(),
           timeSinceActivity: Math.round(timeSinceActivity / 1000),
@@ -54,6 +54,7 @@ class AuthManager {
           this.user = {
             username,
             token,
+            role,
             loginTime: loginTimeMs,
           };
           this.lastActivityTime = lastActivityMs;
@@ -81,10 +82,9 @@ class AuthManager {
     const updateActivity = () => {
       this.lastActivityTime = Date.now();
       if (this.user) {
-        // Update session in localStorage to reflect latest activity
         localStorage.setItem(
           "auth_last_activity",
-          this.lastActivityTime.toString(),
+          this.lastActivityTime.toString()
         );
       }
     };
@@ -93,7 +93,6 @@ class AuthManager {
       document.addEventListener(event, updateActivity, true);
     });
 
-    // Store cleanup function
     this.activityListeners.push(() => {
       events.forEach((event) => {
         document.removeEventListener(event, updateActivity, true);
@@ -120,29 +119,32 @@ class AuthManager {
           window.location.href = "/login";
         }
       }
-    }, 60000); // Check every minute
+    }, 60000);
   }
 
-  login(username: string, token: string): void {
+  login(username: string, token: string, role: string = "USER"): void {
     const loginTime = Date.now();
     this.lastActivityTime = loginTime;
 
     this.user = {
       username,
       token,
+      role, // ✅ store role in memory
       loginTime,
     };
 
     localStorage.setItem("auth_token", token);
     localStorage.setItem("auth_username", username);
     localStorage.setItem("auth_login_time", loginTime.toString());
+    localStorage.setItem("auth_role", role); // ✅ persist role
     localStorage.setItem(
       "auth_last_activity",
-      this.lastActivityTime.toString(),
+      this.lastActivityTime.toString()
     );
 
     console.log("User logged in:", {
       username,
+      role,
       loginTime: new Date(loginTime).toISOString(),
     });
   }
@@ -153,7 +155,6 @@ class AuthManager {
       this.sessionCheckInterval = null;
     }
 
-    // Clean up activity listeners
     this.activityListeners.forEach((cleanup) => cleanup());
     this.activityListeners = [];
 
@@ -166,12 +167,12 @@ class AuthManager {
     localStorage.removeItem("auth_username");
     localStorage.removeItem("auth_login_time");
     localStorage.removeItem("auth_last_activity");
+    localStorage.removeItem("auth_role"); // ✅ clear role
   }
 
   isAuthenticated(): boolean {
     if (!this.user) return false;
 
-    // Double-check session validity
     const now = Date.now();
     const sessionTimeout = configManager.get().sessionTimeout;
     const timeSinceActivity = now - this.lastActivityTime;
@@ -185,7 +186,7 @@ class AuthManager {
     return true;
   }
 
-  getUser(): User | null {
+  getUser(): User | Admin | null {
     return this.user;
   }
 
@@ -198,7 +199,7 @@ class AuthManager {
       this.lastActivityTime = Date.now();
       localStorage.setItem(
         "auth_last_activity",
-        this.lastActivityTime.toString(),
+        this.lastActivityTime.toString()
       );
     }
   }
@@ -218,7 +219,6 @@ class AuthManager {
       clearInterval(this.sessionCheckInterval);
     }
 
-    // Clean up activity listeners
     this.activityListeners.forEach((cleanup) => cleanup());
     this.activityListeners = [];
   }

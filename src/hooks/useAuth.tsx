@@ -7,13 +7,17 @@ import {
 } from "react";
 import { Admin, authManager, User } from "@/lib/auth";
 import { apiClient, LoginRequest } from "@/lib/api";
+import Cookies from "js-cookie";
 
 interface AuthContextType {
-  user: User | Admin;
+  user: User | Admin | null;
+  token: string | null;
+  role: string | null;
+  isAdmin: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (
-    credentials: LoginRequest,
+    credentials: LoginRequest
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   refreshSession: () => void;
@@ -25,37 +29,55 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | Admin | null>(null);
+  const [token, setToken] = useState<string | null>(
+    Cookies.get("session_token") || null
+  );
+  const [role, setRole] = useState<string | null>(
+    localStorage.getItem("role") || null
+  );
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAdmin = role === "ADMIN";
 
   useEffect(() => {
-    // Initialize auth state with error handling
     try {
       const currentUser = authManager.getUser();
       const authenticated = authManager.isAuthenticated();
 
       setUser(currentUser);
       setIsAuthenticated(authenticated);
+      setToken(Cookies.get("session_token") || null);
+      setRole(localStorage.getItem("role") || null);
       setIsLoading(false);
 
-      console.log("Auth initialized:", { user: currentUser, authenticated });
+      if (authenticated) {
+        const timeout = setTimeout(() => {
+          logout();
+        }, SESSION_TIMEOUT_MS);
+
+        return () => clearTimeout(timeout);
+      }
     } catch (error) {
       console.error("Failed to initialize auth:", error);
       setIsLoading(false);
     }
 
-    // Listen for storage changes (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "auth_token") {
-        const newUser = authManager.getUser();
-        const newAuthenticated = authManager.isAuthenticated();
-        setUser(newUser);
-        setIsAuthenticated(newAuthenticated);
+        const updatedUser = authManager.getUser();
+        const updatedAuth = authManager.isAuthenticated();
+        setUser(updatedUser);
+        setIsAuthenticated(updatedAuth);
+        setToken(Cookies.get("session_token") || null);
+        setRole(localStorage.getItem("role") || null);
         console.log("Auth state changed:", {
-          user: newUser,
-          authenticated: newAuthenticated,
+          user: updatedUser,
+          authenticated: updatedAuth,
         });
       }
     };
@@ -68,7 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  const login = async (credentials: LoginRequest) => {
+  const login = async (
+    credentials: LoginRequest
+  ): Promise<{ success: boolean; message?: string }> => {
     setIsLoading(true);
 
     try {
@@ -76,11 +100,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.success && response.token) {
         authManager.login(credentials.username, response.token);
+
         const newUser = authManager.getUser();
         const authenticated = authManager.isAuthenticated();
+        const userRole = newUser?.role || "USER";
 
         setUser(newUser);
         setIsAuthenticated(authenticated);
+        setToken(response.token);
+        setRole(userRole);
+
+        Cookies.set("session_token", response.token, { expires: 0.0208 });
+        localStorage.setItem("role", userRole);
 
         console.log("Login successful:", { user: newUser, authenticated });
         return { success: true };
@@ -93,7 +124,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Login failed",
+        message:
+          error instanceof Error ? error.message : "Login failed unexpectedly",
       };
     } finally {
       setIsLoading(false);
@@ -103,17 +135,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = () => {
     authManager.logout();
     apiClient.logout();
+    Cookies.remove("session_token");
+    localStorage.removeItem("role");
     setUser(null);
+    setToken(null);
+    setRole(null);
     setIsAuthenticated(false);
     console.log("Logout successful");
+    window.location.href = "/login";
   };
 
   const refreshSession = () => {
     authManager.refreshSession();
+    Cookies.set("session_token", token || "", { expires: 0.0208 });
   };
 
   const value: AuthContextType = {
     user,
+    token,
+    role,
+    isAdmin,
     isAuthenticated,
     isLoading,
     login,
@@ -121,13 +162,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshSession,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    console.error("useAuth called outside of AuthProvider context");
+  if (!context) {
+    console.error("useAuth must be used within an AuthProvider");
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
